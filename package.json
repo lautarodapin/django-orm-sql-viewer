@@ -14,8 +14,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "django-orm-sql-viewer.helloWorld",
-        "title": "Hello World"
+        "command": "django-orm-sql-viewer.viewSQL",
+        "title": "View SQL"
       }
     ]
   },
