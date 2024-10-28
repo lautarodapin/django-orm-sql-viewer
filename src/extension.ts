@@ -1,26 +1,83 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import { spawn } from 'child_process';
+import path from 'path';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+    const outputChannel = vscode.window.createOutputChannel('Django ORM SQL');
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "django-orm-sql-viewer" is now active!');
+    const viewSQL = vscode.commands.registerCommand('django-orm-sql-viewer.viewSQL', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            return;
+        }
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('django-orm-sql-viewer.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from django-orm-sql-viewer!');
-	});
+        const document = editor.document;
+        const selection = editor.selection;
+        const text = document.getText(selection);
 
-	context.subscriptions.push(disposable);
+        try {
+            const sql = await getDjangoORMSQL(text);
+            outputChannel.show();
+            outputChannel.appendLine(sql);
+        } catch (err) {
+            vscode.window.showErrorMessage('Error getting SQL: ' + err);
+        }
+    });
+
+    context.subscriptions.push(viewSQL);
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {}
+
+async function getDjangoORMSQL(query: string): Promise<string> {
+    const pythonScript = `
+  import django
+  from django.conf import settings
+  settings.configure()
+  django.setup()
+  
+  import sys
+  from io import StringIO
+  
+  original_stdout = sys.stdout
+  sys.stdout = buffer = StringIO()
+  
+  ${query}
+  
+  sys.stdout = original_stdout
+  print(buffer.getvalue())
+  `;
+
+    return new Promise((resolve, reject) => {
+        const pythonPath = vscode.workspace.getConfiguration('python').get('pythonPath', 'python');
+        const scriptPath = path.join(__dirname, 'get_sql.py');
+
+        const child = spawn(pythonPath, [scriptPath], {
+            env: {
+                PYTHONPATH: vscode.workspace.getConfiguration('python').get('pythonPath', ''),
+            },
+        });
+
+        let output = '';
+        child.stdout.on('data', (data) => {
+            output += data.toString();
+        });
+
+        child.stderr.on('data', (data) => {
+            reject(`Error getting SQL: ${data.toString()}`);
+        });
+
+        child.on('close', (code) => {
+            if (code === 0) {
+                resolve(output.trim());
+            } else {
+                reject(`Error getting SQL (code ${code})`);
+            }
+        });
+
+        child.stdin.write(pythonScript);
+        child.stdin.end();
+    });
+}
