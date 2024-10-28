@@ -41,14 +41,6 @@ print(buffer.getvalue())
     tmp.setGracefulCleanup();
     const tmpObj = tmp.fileSync({ postfix: '.py' });
     const tmpFile = tmpObj.name;
-
-    console.log('Temporary obj:', tmpObj);
-
-    console.log('Temporary file:', tmpFile);
-    let tempPath = tmpFile.split('/');
-    tempPath.pop();
-    tempPath = tempPath.join('/');
-
     fs.writeFileSync(tmpFile, pythonScript);
 
     return new Promise((resolve, reject) => {
