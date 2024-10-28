@@ -16,6 +16,9 @@ devDependencies:
   '@types/node':
     specifier: 20.x
     version: 20.17.1
+  '@types/tmp':
+    specifier: ^0.2.6
+    version: 0.2.6
   '@types/vscode':
     specifier: ^1.94.0
     version: 1.94.0
@@ -248,6 +251,10 @@ packages:
     resolution: {integrity: sha512-j2VlPv1NnwPJbaCNv69FO/1z4lId0QmGvpT41YxitRtWlg96g/j8qcv2RKsLKe2F6OJgyXhupN1Xo17b2m139Q==}
     dependencies:
       undici-types: 6.19.8
+    dev: true
+
+  /@types/tmp@0.2.6:
+    resolution: {integrity: sha512-chhaNf2oKHlRkDGt+tiKE2Z5aJ6qalm7Z9rlLdBwmOiAAf09YQvvoLXjWK4HWPF1xU/fqvMgfNfpVoBscA/tKA==}
     dev: true
 
   /@types/vscode@1.94.0:

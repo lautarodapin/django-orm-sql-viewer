@@ -10,7 +10,8 @@ const query = `
 User.objects.all()
 `;
 
-const pythonScript = `
+async function getDjangoSQL(query: string, imports: string) {
+    const pythonScript = `
 import sys
 
 sys.path.append("${path.join(__dirname, 'django_project')}")
@@ -30,46 +31,50 @@ ${imports}
 original_stdout = sys.stdout
 sys.stdout = buffer = StringIO()
 
-${query}
 
-print(User.objects.all().query.sql_with_params())
+buffer.write(${query}.query.sql_with_params()[0])
 
 sys.stdout = original_stdout
 print(buffer.getvalue())
-`;
+    `;
 
-tmp.setGracefulCleanup();
-tmp.file({ postfix: '.py' }, (err, tmpFile, fd, cleanupCallback) => {
-    if (err) {
-        console.error('Error creating temporary file:', err);
-        return;
-    }
+    tmp.setGracefulCleanup();
+    const tmpObj = tmp.fileSync({ postfix: '.py' });
+    const tmpFile = tmpObj.name;
+
+    console.log('Temporary obj:', tmpObj);
+
     console.log('Temporary file:', tmpFile);
     let tempPath = tmpFile.split('/');
     tempPath.pop();
     tempPath = tempPath.join('/');
 
-
     fs.writeFileSync(tmpFile, pythonScript);
 
-    const child = spawn('python3.12', [tmpFile], {});
+    return new Promise((resolve, reject) => {
+        const child = spawn('python3.12', [tmpFile], {});
 
-    let output = '';
-    child.stdout.on('data', (data) => {
-        output += data.toString();
+        let output = '';
+        child.stdout.on('data', (data) => {
+            output += data.toString();
+        });
+
+        child.stderr.on('data', (data) => {
+            console.error(`Error getting SQL: ${data.toString()}`);
+            reject(data.toString());
+        });
+
+        child.on('close', (code) => {
+            if (code === 0) {
+                resolve(output.trim());
+            } else {
+                console.error(`Error getting SQL (code ${code})`);
+                reject(`Error getting SQL (code ${code})`);
+            }
+
+            tmpObj.removeCallback();
+        });
     });
-
-    child.stderr.on('data', (data) => {
-        console.error(`Error getting SQL: ${data.toString()}`);
-    });
-
-    child.on('close', (code) => {
-        if (code === 0) {
-            console.log(output.trim());
-        } else {
-            console.error(`Error getting SQL (code ${code})`);
-        }
-
-        cleanupCallback();
-    });
-});
+}
+const sql = await getDjangoSQL(query, imports);
+console.log(sql);
