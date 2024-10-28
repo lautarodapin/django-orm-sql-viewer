@@ -11,17 +11,21 @@ User.objects.all()
 `;
 
 const pythonScript = `
-import django
+import sys
 
+sys.path.append("${path.join(__dirname, 'django_project')}")
+
+import django
 import os
+from io import StringIO
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_project.settings')
 from django.conf import settings
 
 django.setup()
 
 ${imports}
-import sys
-from io import StringIO
+
 
 original_stdout = sys.stdout
 sys.stdout = buffer = StringIO()
@@ -45,7 +49,6 @@ tmp.file({ postfix: '.py' }, (err, tmpFile, fd, cleanupCallback) => {
     tempPath.pop();
     tempPath = tempPath.join('/');
 
-    fs.cpSync(path.join(__dirname, 'django_project'), tempPath + '/django_project', { recursive: true });
 
     fs.writeFileSync(tmpFile, pythonScript);
 
