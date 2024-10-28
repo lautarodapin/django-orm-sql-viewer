@@ -11,7 +11,11 @@ DEBUG = environ.get("DJANGO_DEBUG", "false").lower() == "true"
 
 DATABASES = {
     "default": {
-        "ENGINE": environ.get("DATABASE_ENGINE", "django.db.backends.sqlite3"),
+        "ENGINE": environ.get("DATABASE_ENGINE", "django.db.backends.postgresql"),
+        "NAME": environ.get("DATABASE_NAME", "django"),
+        "USER": environ.get("DATABASE_USER", "postgres"),
+        "PASSWORD": environ.get("DATABASE_PASSWORD", "example"),
+        "HOST": environ.get("POSTGRESQL_SERVICE_HOST", "postgresql"),
         "CONN_MAX_AGE": 600,
     }
 }
